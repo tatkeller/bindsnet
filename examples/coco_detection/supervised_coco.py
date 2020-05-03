@@ -8,7 +8,7 @@ from torchvision import transforms
 from tqdm import tqdm
 
 
-from bindsnet.datasets import MNIST
+from bindsnet.datasets import CocoDetection
 from bindsnet.encoding import PoissonEncoder
 from bindsnet.models import DiehlAndCook2015
 from bindsnet.network.monitors import Monitor
@@ -71,7 +71,7 @@ if not train:
 
 n_sqrt = int(np.ceil(np.sqrt(n_neurons)))
 start_intensity = intensity
-per_class = int(n_neurons / 10)
+per_class = int(n_neurons / 10) #TODO - is 10 a magic number/ output labels?
 
 # Build Diehl & Cook 2015 network.
 network = DiehlAndCook2015(
@@ -82,7 +82,7 @@ network = DiehlAndCook2015(
     dt=dt,
     norm=78.4,
     nu=[0, 1e-2],
-    inpt_shape=(1, 28, 28),
+    inpt_shape=(1, 28, 28), #TODO: Size?
 )
 
 # Voltage recording for excitatory and inhibitory layers.
@@ -91,18 +91,19 @@ inh_voltage_monitor = Monitor(network.layers["Ai"], ["v"], time=time)
 network.add_monitor(exc_voltage_monitor, name="exc_voltage")
 network.add_monitor(inh_voltage_monitor, name="inh_voltage")
 
-# Load MNIST data.
+# Load COCO data.
 dataset = CocoDetection(
     PoissonEncoder(time=time, dt=dt),
     None,
     root=os.path.join("..", "..", "data", "CocoDetection"),
     download=True,
     transform=transforms.Compose(
-        [transforms.ToTensor(), transforms.Lambda(lambda x: x * intensity)]
+        [transforms.ToTensor(), transforms.Lambda(lambda x: x * intensity)] #TODO - Crop
     ),
 )
 
 # Create a dataloader to iterate and batch data
+#TODO: Train and Test 
 dataloader = torch.utils.data.DataLoader(
     dataset, batch_size=1, shuffle=True, num_workers=0, pin_memory=gpu
 )
@@ -150,9 +151,9 @@ for (i, datum) in pbar:
 
     if i % update_interval == 0 and i > 0:
         # Get network predictions.
-        all_activity_pred = all_activity(spike_record, assignments, 10)
+        all_activity_pred = all_activity(spike_record, assignments, 10) #TODO
         proportion_pred = proportion_weighting(
-            spike_record, assignments, proportions, 10
+            spike_record, assignments, proportions, 10 #TODO
         )
 
         # Compute network accuracy according to available classification strategies.
@@ -183,9 +184,9 @@ for (i, datum) in pbar:
     labels[i % update_interval] = label[0]
 
     # Run the network on the input.
-    choice = np.random.choice(int(n_neurons / 10), size=n_clamp, replace=False)
+    choice = np.random.choice(int(n_neurons / 10), size=n_clamp, replace=False) #TODO
     clamp = {"Ae": per_class * label.long() + torch.Tensor(choice).long()}
-    inputs = {"X": image.view(time, 1, 1, 28, 28)}
+    inputs = {"X": image.view(time, 1, 1, 28, 28)} #TODO: SIZE
     network.run(inputs=inputs, time=time, clamp=clamp)
 
     # Get voltage recording.
@@ -197,16 +198,16 @@ for (i, datum) in pbar:
 
     # Optionally plot various simulation information.
     if plot:
-        inpt = inputs["X"].view(time, 784).sum(0).view(28, 28)
+        inpt = inputs["X"].view(time, 784).sum(0).view(28, 28) #TODO
         input_exc_weights = network.connections[("X", "Ae")].w
         square_weights = get_square_weights(
-            input_exc_weights.view(784, n_neurons), n_sqrt, 28
+            input_exc_weights.view(784, n_neurons), n_sqrt, 28 #TODO
         )
         square_assignments = get_square_assignments(assignments, n_sqrt)
         voltages = {"Ae": exc_voltages, "Ai": inh_voltages}
 
         inpt_axes, inpt_ims = plot_input(
-            image.sum(1).view(28, 28), inpt, label=label, axes=inpt_axes, ims=inpt_ims
+            image.sum(1).view(28, 28), inpt, label=label, axes=inpt_axes, ims=inpt_ims #TODO
         )
         spike_ims, spike_axes = plot_spikes(
             {layer: spikes[layer].get("s").view(time, 1, -1) for layer in spikes},
@@ -226,3 +227,6 @@ for (i, datum) in pbar:
 
 print("Progress: %d / %d \n" % (n_train, n_train))
 print("Training complete.\n")
+
+#TODO: Add testing loop
+
