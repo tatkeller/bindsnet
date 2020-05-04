@@ -96,23 +96,25 @@ network.add_monitor(exc_voltage_monitor, name="exc_voltage")
 network.add_monitor(inh_voltage_monitor, name="inh_voltage")
 
 # Load COCO data.
-dataset_train = CocoDetection(
+full_dataset = CocoDetection(
     PoissonEncoder(time=time, dt=dt),
     None,
     root=os.path.join("..", "..", "data", "CocoDetection"),
-    download=True,
-    train=True,
     transform=transforms.Compose(
         [transforms.ToTensor(), 
          transforms.Lambda(lambda x: x * intensity),
          transforms.CenterCrop(coco_shape)] 
     ),
 )
+    
+train_size = int(0.8 * len(full_dataset))
+test_size = len(full_dataset) - train_size
+train_dataset, test_dataset = torch.utils.data.random_split(full_dataset, [train_size, test_size])
 
 # Create a dataloader to iterate and batch data
 #TODO: Train and Test 
 dataloader_train = torch.utils.data.DataLoader(
-    dataset_train, batch_size=1, shuffle=True, num_workers=0, pin_memory=gpu
+    train_dataset, batch_size=1, shuffle=True, num_workers=0, pin_memory=gpu
 )
 
 # Record spikes during the simulation.
