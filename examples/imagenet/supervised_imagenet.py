@@ -7,12 +7,6 @@ import matplotlib.pyplot as plt
 from torchvision import transforms
 from tqdm import tqdm
 
-#from pycocotools.coco import COCO
-
-dataDir='..'
-dataType='val2017'
-annFile='{}/annotations/instances_{}.json'.format(dataDir,dataType)
-
 from bindsnet.datasets import CocoDetection
 from bindsnet.encoding import PoissonEncoder
 from bindsnet.models import DiehlAndCook2015
