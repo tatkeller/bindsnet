@@ -7,6 +7,11 @@ import matplotlib.pyplot as plt
 from torchvision import transforms
 from tqdm import tqdm
 
+from pycocotools.coco import COCO
+
+dataDir='..'
+dataType='val2017'
+annFile='{}/annotations/instances_{}.json'.format(dataDir,dataType)
 
 from bindsnet.datasets import CocoDetection
 from bindsnet.encoding import PoissonEncoder
@@ -100,6 +105,7 @@ full_dataset = CocoDetection(
     PoissonEncoder(time=time, dt=dt),
     None,
     root=os.path.join("..", "..", "data", "CocoDetection"),
+    annFile=annFile,
     transform=transforms.Compose(
         [transforms.ToTensor(), 
          transforms.Lambda(lambda x: x * intensity),
