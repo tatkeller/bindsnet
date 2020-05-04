@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 from torchvision import transforms
 from tqdm import tqdm
 
-from bindsnet.datasets import CocoDetection
+from bindsnet.datasets import ImageNet
 from bindsnet.encoding import PoissonEncoder
 from bindsnet.models import DiehlAndCook2015
 from bindsnet.network.monitors import Monitor
@@ -95,11 +95,10 @@ network.add_monitor(exc_voltage_monitor, name="exc_voltage")
 network.add_monitor(inh_voltage_monitor, name="inh_voltage")
 
 # Load COCO data.
-full_dataset = CocoDetection(
+full_dataset = ImageNet(
     PoissonEncoder(time=time, dt=dt),
     None,
-    root=os.path.join("..", "..", "data", "CocoDetection"),
-    annFile=annFile,
+    root=os.path.join("..", "..", "data", "ImageNet"),
     transform=transforms.Compose(
         [transforms.ToTensor(), 
          transforms.Lambda(lambda x: x * intensity),
