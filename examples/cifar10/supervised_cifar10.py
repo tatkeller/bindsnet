@@ -4,6 +4,7 @@ import numpy as np
 import argparse
 import matplotlib.pyplot as plt
 
+import torchvision
 from torchvision import transforms
 from tqdm import tqdm
 
@@ -126,7 +127,7 @@ dataloader_train = torch.utils.data.DataLoader(
     train_dataset, batch_size=1, shuffle=True, num_workers=0, pin_memory=gpu
 )
 
-dataloader_train = torch.utils.data.DataLoader(
+dataloader_test = torch.utils.data.DataLoader(
     test_dataset, batch_size=1, shuffle=True, num_workers=0, pin_memory=gpu
 )
 
@@ -162,8 +163,21 @@ perf_ax = None
 voltage_axes = None
 voltage_ims = None
 
+def imshow(img):
+    img = img / 2 + 0.5     # unnormalize
+    npimg = img.numpy()
+    plt.imshow(np.transpose(npimg, (1, 2, 0)))
+    plt.show()
+
+
+# get some random training images
+dataiter = iter(dataloader_test)
+images, labels = dataiter.next()
+
+# show images
+imshow(torchvision.utils.make_grid(images))
+
 pbar = tqdm(enumerate(dataloader_train))
-print(pbar)
 for (i, datum) in pbar:
     if i > n_train:
         break
