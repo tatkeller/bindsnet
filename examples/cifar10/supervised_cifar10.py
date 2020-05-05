@@ -236,10 +236,10 @@ for (i, datum) in pbar:
 
     # Optionally plot various simulation information.
     if plot:
-        inpt = inputs["X"].view(time, 32*32*3).sum(0).view(32, 32, 3)
+        inpt = inputs["X"].view(time, 32*32*3).sum(0).view(32, 32* 3)
         input_exc_weights = network.connections[("X", "Ae")].w
         square_weights = get_square_weights(
-            input_exc_weights.view(32*32*3, n_neurons), n_sqrt, (32, 32, 3)
+            input_exc_weights.view(32*32*3, n_neurons), n_sqrt, (32, 32* 3)
         )
         square_assignments = get_square_assignments(assignments, n_sqrt)
         voltages = {"Ae": exc_voltages, "Ai": inh_voltages}
