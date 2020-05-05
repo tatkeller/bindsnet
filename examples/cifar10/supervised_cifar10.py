@@ -219,7 +219,7 @@ for (i, datum) in pbar:
     # Run the network on the input.
     choice = np.random.choice(int(n_neurons / num_classes), size=n_clamp, replace=False) 
     clamp = {"Ae": per_class * label.long() + torch.Tensor(choice).long()}
-    inputs = {"X": image.view(time, 32, 32, 3)}
+    inputs = {"X": image.view(32 * 32 * 3, time)}
     network.run(inputs=inputs, time=time, clamp=clamp)
 
     # Get voltage recording.
