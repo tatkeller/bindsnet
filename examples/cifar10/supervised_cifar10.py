@@ -163,15 +163,6 @@ perf_ax = None
 voltage_axes = None
 voltage_ims = None
 
-def imshow(img):
-    img = img / 2 + 0.5     # unnormalize
-    npimg = img.numpy()
-    plt.imshow(np.transpose(npimg, (1, 2, 0)))
-    plt.show()
-
-
-print(dataloader_test)
-
 pbar = tqdm(enumerate(dataloader_train))
 for (i, datum) in pbar:
     if i > n_train:
@@ -219,7 +210,7 @@ for (i, datum) in pbar:
     # Run the network on the input.
     choice = np.random.choice(int(n_neurons / num_classes), size=n_clamp, replace=False) 
     clamp = {"Ae": per_class * label.long() + torch.Tensor(choice).long()}
-    inputs = {"X": image.view(32 * 32 * 3, time)}
+    inputs = {"X": image.view(time, 1, 3, 32, 32)}
     network.run(inputs=inputs, time=time, clamp=clamp)
 
     # Get voltage recording.
