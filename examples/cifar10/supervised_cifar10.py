@@ -26,7 +26,7 @@ from bindsnet.analysis.plotting import (
 parser = argparse.ArgumentParser()
 parser.add_argument("--seed", type=int, default=0)
 parser.add_argument("--n_neurons", type=int, default=100)
-parser.add_argument("--n_train", type=int, default=5000)
+parser.add_argument("--n_train", type=int, default=100)
 parser.add_argument("--n_test", type=int, default=10000)
 parser.add_argument("--n_clamp", type=int, default=1)
 parser.add_argument("--exc", type=float, default=22.5)
@@ -40,6 +40,7 @@ parser.add_argument("--train", dest="train", action="store_true")
 parser.add_argument("--test", dest="train", action="store_false")
 parser.add_argument("--plot", dest="plot", action="store_true")
 parser.add_argument("--gpu", dest="gpu", action="store_true")
+parser.add_argument("--device_id", type=int, default=0)
 parser.set_defaults(plot=False, gpu=False, train=True)
 
 args = parser.parse_args()
@@ -58,15 +59,21 @@ progress_interval = args.progress_interval
 update_interval = args.update_interval
 train = args.train
 plot = args.plot
+#TODO: gpu problem
 gpu = args.gpu
+device_id = args.device_id
+
 
 num_classes = 10
 cifar_shape = (32, 32, 3)
 
+np.random.seed(seed)
+torch.cuda.manual_seed_all(seed)
+torch.manual_seed(seed)
 
-if gpu:
-    torch.set_default_tensor_type("torch.cuda.FloatTensor")
-    torch.cuda.manual_seed_all(seed)
+# Sets up Gpu use
+if gpu and torch.cuda.is_available():
+    torch.cuda.set_device(device_id)
 else:
     torch.manual_seed(seed)
 
@@ -94,6 +101,9 @@ exc_voltage_monitor = Monitor(network.layers["Ae"], ["v"], time=time)
 inh_voltage_monitor = Monitor(network.layers["Ai"], ["v"], time=time)
 network.add_monitor(exc_voltage_monitor, name="exc_voltage")
 network.add_monitor(inh_voltage_monitor, name="inh_voltage")
+
+if gpu:
+    network.to("cuda")
 
 # Load CIFAR10 data.
 train_dataset = CIFAR10(
