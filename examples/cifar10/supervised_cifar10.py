@@ -35,7 +35,7 @@ parser.add_argument("--time", type=int, default=500)
 parser.add_argument("--dt", type=int, default=1.0)
 parser.add_argument("--intensity", type=float, default=128)
 parser.add_argument("--progress_interval", type=int, default=10)
-parser.add_argument("--update_interval", type=int, default=250)
+parser.add_argument("--update_interval", type=int, default=25)
 parser.add_argument("--train", dest="train", action="store_true")
 parser.add_argument("--test", dest="train", action="store_false")
 parser.add_argument("--plot", dest="plot", action="store_true")
@@ -258,7 +258,7 @@ for (i, datum) in pbar:
         voltage_ims, voltage_axes = plot_voltages(
             voltages, ims=voltage_ims, axes=voltage_axes
         )
-
+        plt.show()
         plt.pause(1e-8)
 
     network.reset_state_variables()  # Reset state variables.
