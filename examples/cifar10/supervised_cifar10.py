@@ -258,7 +258,6 @@ for (i, datum) in pbar:
         voltage_ims, voltage_axes = plot_voltages(
             voltages, ims=voltage_ims, axes=voltage_axes
         )
-        plt.show()
         plt.pause(1e-8)
 
     network.reset_state_variables()  # Reset state variables.
