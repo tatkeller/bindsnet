@@ -116,9 +116,9 @@ test_dataset = CIFAR10(
     train=False,
     download=True,
     transform=transforms.Compose(
-        [transforms.ToTensor(), 
-         transforms.Lambda(lambda x: x * intensity),
-         transforms.CenterCrop(coco_shape)] 
+        [transforms.CenterCrop(coco_shape),
+         transforms.ToTensor(), 
+         transforms.Lambda(lambda x: x * intensity)] 
     ),
 )
 
