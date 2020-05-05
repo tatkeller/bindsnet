@@ -61,7 +61,7 @@ plot = args.plot
 gpu = args.gpu
 
 num_classes = 10
-coco_shape = (32, 32, 3)
+cifar_shape = (32, 32, 3)
 
 
 if gpu:
@@ -86,7 +86,7 @@ network = DiehlAndCook2015(
     dt=dt,
     norm=78.4,
     nu=[0, 1e-2],
-    inpt_shape=coco_shape, 
+    inpt_shape=cifar_shape, 
 )
 
 # Voltage recording for excitatory and inhibitory layers.
@@ -103,7 +103,7 @@ train_dataset = CIFAR10(
     train=True,
     download=True,
     transform=transforms.Compose(
-        [transforms.CenterCrop(coco_shape),
+        [transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
          transforms.ToTensor(), 
          transforms.Lambda(lambda x: x * intensity)] 
     ),
@@ -116,7 +116,7 @@ test_dataset = CIFAR10(
     train=False,
     download=True,
     transform=transforms.Compose(
-        [transforms.CenterCrop(coco_shape),
+        [transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
          transforms.ToTensor(), 
          transforms.Lambda(lambda x: x * intensity)] 
     ),
