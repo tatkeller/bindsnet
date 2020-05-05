@@ -103,8 +103,8 @@ train_dataset = CIFAR10(
     train=True,
     download=True,
     transform=transforms.Compose(
-        [transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
-         transforms.ToTensor(), 
+        [transforms.ToTensor(), 
+         transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
          transforms.Lambda(lambda x: x * intensity)] 
     ),
 )
@@ -116,8 +116,8 @@ test_dataset = CIFAR10(
     train=False,
     download=True,
     transform=transforms.Compose(
-        [transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
-         transforms.ToTensor(), 
+        [transforms.ToTensor(), 
+         transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
          transforms.Lambda(lambda x: x * intensity)] 
     ),
 )
