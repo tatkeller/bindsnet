@@ -176,6 +176,9 @@ voltage_ims = None
 
 pbar = tqdm(enumerate(dataloader_train))
 for (i, datum) in pbar:
+    if gpu:
+        datum = datum.to("cuda")
+
     if i > n_train:
         break
 
