@@ -73,6 +73,7 @@ torch.manual_seed(seed)
 
 # Sets up Gpu use
 if gpu and torch.cuda.is_available():
+    torch.set_default_tensor_type("torch.cuda.FloatTensor")
     torch.cuda.set_device(device_id)
 else:
     torch.manual_seed(seed)
