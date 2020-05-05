@@ -73,7 +73,6 @@ torch.manual_seed(seed)
 
 # Sets up Gpu use
 if gpu and torch.cuda.is_available():
-    torch.set_default_tensor_type("torch.cuda.FloatTensor")
     torch.cuda.set_device(device_id)
 else:
     torch.manual_seed(seed)
@@ -102,9 +101,6 @@ exc_voltage_monitor = Monitor(network.layers["Ae"], ["v"], time=time)
 inh_voltage_monitor = Monitor(network.layers["Ai"], ["v"], time=time)
 network.add_monitor(exc_voltage_monitor, name="exc_voltage")
 network.add_monitor(inh_voltage_monitor, name="inh_voltage")
-
-if gpu:
-    network.to("cuda")
 
 # Load CIFAR10 data.
 train_dataset = CIFAR10(
@@ -160,6 +156,9 @@ spikes = {}
 for layer in set(network.layers):
     spikes[layer] = Monitor(network.layers[layer], state_vars=["s"], time=time)
     network.add_monitor(spikes[layer], name="%s_spikes" % layer)
+
+if gpu:
+    network.to("cuda")
 
 # Train the network.
 print("Begin training.\n")
