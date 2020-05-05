@@ -163,6 +163,7 @@ voltage_axes = None
 voltage_ims = None
 
 pbar = tqdm(enumerate(dataloader_train))
+print(pbar)
 for (i, datum) in pbar:
     if i > n_train:
         break
