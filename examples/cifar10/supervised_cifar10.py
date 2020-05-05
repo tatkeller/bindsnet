@@ -170,12 +170,7 @@ def imshow(img):
     plt.show()
 
 
-# get some random training images
-dataiter = iter(dataloader_test)
-images, labels = dataiter.next()
-
-# show images
-imshow(torchvision.utils.make_grid(images))
+print(dataloader_test)
 
 pbar = tqdm(enumerate(dataloader_train))
 for (i, datum) in pbar:
