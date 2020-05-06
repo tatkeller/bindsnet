@@ -26,8 +26,8 @@ from bindsnet.analysis.plotting import (
 parser = argparse.ArgumentParser()
 parser.add_argument("--seed", type=int, default=0)
 parser.add_argument("--n_neurons", type=int, default=100)
-parser.add_argument("--n_train", type=int, default=200)
-parser.add_argument("--n_test", type=int, default=10000)
+parser.add_argument("--n_train", type=int, default=600)
+parser.add_argument("--n_test", type=int, default=600)
 parser.add_argument("--n_clamp", type=int, default=1)
 parser.add_argument("--exc", type=float, default=22.5)
 parser.add_argument("--inh", type=float, default=22.5)
@@ -267,3 +267,102 @@ print("Training complete.\n")
 
 #TODO: Add testing loop
 
+# Record spikes during the simulation.
+spike_record_test = torch.zeros(update_interval, time, n_neurons)
+
+# Neuron assignments and spike proportions.
+assignments_test = -torch.ones_like(torch.Tensor(n_neurons))
+proportions_test = torch.zeros_like(torch.Tensor(n_neurons, num_classes))
+rates_test = torch.zeros_like(torch.Tensor(n_neurons, num_classes))
+
+test_accuracy = {"all": [], "proportion": []}
+
+
+pbar = tqdm(enumerate(dataloader_test))
+for (i, datum) in pbar:
+    if gpu:
+        datum = datum.to("cuda")
+
+    if i > n_test:
+        break
+
+    image = datum["encoded_image"]
+    label = datum["label"]
+    pbar.set_description_str("Testing progress: (%d / %d)" % (i, n_test))
+
+    #Print training accuracy
+    if i % update_interval == 0 and i > 0:
+        # Get network predictions.
+        all_activity_pred = all_activity(spike_record_test, assignments_test, num_classes) 
+        proportion_pred = proportion_weighting(
+            spike_record_test, assignments_test, proportions_test, num_classes 
+        )
+
+        # Compute network accuracy according to available classification strategies.
+        test_accuracy["all"].append(
+            100 * torch.sum(labels.long() == all_activity_pred).item() / update_interval
+        )
+        test_accuracy["proportion"].append(
+            100 * torch.sum(labels.long() == proportion_pred).item() / update_interval
+        )
+
+        print(
+            "\nAll activity accuracy: %.2f (last), %.2f (average), %.2f (best)"
+            % (test_accuracy["all"][-1], np.mean(test_accuracy["all"]), np.max(test_accuracy["all"]))
+        )
+        print(
+            "Proportion weighting accuracy: %.2f (last), %.2f (average), %.2f (best)\n"
+            % (
+                test_accuracy["proportion"][-1],
+                np.mean(test_accuracy["proportion"]),
+                np.max(test_accuracy["proportion"]),
+            )
+        )
+
+        # Assign labels to excitatory layer neurons.
+        assignments_test, proportions_test, rates_test = assign_labels(spike_record_test, labels, num_classes, rates_test)
+
+    #Add the current label to the list of labels for this update_interval
+    labels[i % update_interval] = label[0]
+
+    # Run the network on the input.
+    inputs = {"X": image.view(time, 1, 32, 32, 3)}
+    network.run(inputs=inputs, time=time)
+
+    # Get voltage recording.
+    exc_voltages = exc_voltage_monitor.get("v")
+    inh_voltages = inh_voltage_monitor.get("v")
+
+    # Add to spikes recording.
+    spike_record_test[i % update_interval] = spikes["Ae"].get("s").view(time, n_neurons)
+
+    # Optionally plot various simulation information.
+    if plot:
+        inpt = inputs["X"].view(time, 32*32*3).sum(0).view(32, 32* 3)
+        input_exc_weights = network.connections[("X", "Ae")].w
+        square_weights = get_square_weights(
+            input_exc_weights.view(32*32*3, n_neurons), n_sqrt, (32, 32* 3)
+        )
+        square_assignments = get_square_assignments(assignments_test, n_sqrt)
+        voltages = {"Ae": exc_voltages, "Ai": inh_voltages}
+
+        inpt_axes, inpt_ims = plot_input(
+            image.sum(1).view(32, 32, 3), inpt, label=label, axes=inpt_axes, ims=inpt_ims 
+        )
+        spike_ims, spike_axes = plot_spikes(
+            {layer: spikes[layer].get("s").view(time, 1, -1) for layer in spikes},
+            ims=spike_ims,
+            axes=spike_axes,
+        )
+        weights_im = plot_weights(square_weights, im=weights_im)
+        assigns_im = plot_assignments(square_assignments, im=assigns_im)
+        perf_ax = plot_performance(test_accuracy, ax=perf_ax)
+        voltage_ims, voltage_axes = plot_voltages(
+            voltages, ims=voltage_ims, axes=voltage_axes
+        )
+        plt.pause(1e-8)
+
+    network.reset_state_variables()  # Reset state variables.
+
+print("Progress: %d / %d \n" % (n_train, n_train))
+print("Training complete.\n")
