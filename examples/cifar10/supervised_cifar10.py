@@ -1,5 +1,6 @@
 import os
 import torch
+import torch.nn as nn
 import numpy as np
 import argparse
 import matplotlib.pyplot as plt
@@ -157,6 +158,9 @@ spikes = {}
 for layer in set(network.layers):
     spikes[layer] = Monitor(network.layers[layer], state_vars=["s"], time=time)
     network.add_monitor(spikes[layer], name="%s_spikes" % layer)
+    
+training_pairs = []
+
 
 if gpu:
     network.to("cuda")
@@ -226,6 +230,8 @@ for (i, datum) in pbar:
     clamp = {"Ae": per_class * label.long() + torch.Tensor(choice).long()}
     inputs = {"X": image.view(time, 1, 32, 32, 3)}
     network.run(inputs=inputs, time=time, clamp=clamp)
+    training_pairs.append([spikes["O"].get("s").sum(0), label])
+
 
     # Get voltage recording.
     exc_voltages = exc_voltage_monitor.get("v")
@@ -265,8 +271,51 @@ for (i, datum) in pbar:
 print("Progress: %d / %d \n" % (n_train, n_train))
 print("Training complete.\n")
 
+# Define logistic regression model using PyTorch.
+class NN(nn.Module):
+    def __init__(self, input_size, num_classes):
+        super(NN, self).__init__()
+        self.linear_1 = nn.Linear(input_size, num_classes)
+
+    def forward(self, x):
+        out = torch.sigmoid(self.linear_1(x.float().view(-1)))
+        # out = torch.sigmoid(self.linear_2(out))
+        return out
+
+# Create and train logistic regression model on reservoir outputs.
+model = NN(n_neurons, 10).to(device_id)
+criterion = torch.nn.MSELoss(reduction="sum")
+optimizer = torch.optim.SGD(model.parameters(), lr=1e-4, momentum=0.9)
+
+n_epochs = 100
+
+# Training the Model
+print("\n Training the read out")
+pbar = tqdm(enumerate(range(n_epochs)))
+for epoch, _ in pbar:
+    avg_loss = 0
+    for i, (s, l) in enumerate(training_pairs):
+        # Forward + Backward + Optimize
+        optimizer.zero_grad()
+        outputs = model(s)
+        label = torch.zeros(1, 1, 10).float().to(device_id)
+        label[0, 0, l] = 1.0
+        loss = criterion(outputs.view(1, 1, -1), label)
+        avg_loss += loss.data
+        loss.backward()
+        optimizer.step()
+
+    pbar.set_description_str(
+        "Epoch: %d/%d, Loss: %.4f"
+        % (epoch + 1, n_epochs, avg_loss / len(training_pairs))
+    )
+
+
+
 # Record spikes during the simulation.
 spike_record_test = torch.zeros(update_interval, time, n_neurons)
+
+test_pairs = []
 
 # Neuron assignments and spike proportions.
 assignments_test = -torch.ones_like(torch.Tensor(n_neurons))
@@ -327,6 +376,8 @@ for (i, datum) in pbar:
     # Run the network on the input.
     inputs = {"X": image.view(time, 1, 32, 32, 3)}
     network.run(inputs=inputs, time=time)
+    test_pairs.append([spikes["O"].get("s").sum(0), label])
+
 
     # Get voltage recording.
     exc_voltages = exc_voltage_monitor.get("v")
@@ -365,3 +416,16 @@ for (i, datum) in pbar:
 
 print("Progress: %d / %d \n" % (n_train, n_train))
 print("Training complete.\n")
+
+# Test the Model
+correct, total = 0, 0
+for s, label in test_pairs:
+    outputs = model(s)
+    _, predicted = torch.max(outputs.data.unsqueeze(0), 1)
+    total += 1
+    correct += int(predicted == label.long().to(device_id))
+
+print(
+    "\n Accuracy of the model on %d test images: %.2f %%"
+    % (n_test, 100 * correct / total)
+)
