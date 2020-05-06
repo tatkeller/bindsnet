@@ -265,8 +265,6 @@ for (i, datum) in pbar:
 print("Progress: %d / %d \n" % (n_train, n_train))
 print("Training complete.\n")
 
-#TODO: Add testing loop
-
 # Record spikes during the simulation.
 spike_record_test = torch.zeros(update_interval, time, n_neurons)
 
@@ -277,6 +275,7 @@ rates_test = torch.zeros_like(torch.Tensor(n_neurons, num_classes))
 
 test_accuracy = {"all": [], "proportion": []}
 
+network.train(False)
 
 pbar = tqdm(enumerate(dataloader_test))
 for (i, datum) in pbar:
