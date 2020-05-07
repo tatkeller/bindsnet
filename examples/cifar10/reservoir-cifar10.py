@@ -1,4 +1,5 @@
 ### Line 136: datum = dataPoint["encoded_image"]...
+### Last attempt: Changed n_neurons to 3072 (vs. 500) -- Result: Poor - Loss didn't move
 
 import numpy as np
 import pandas as pd
@@ -54,8 +55,8 @@ plot = args.plot
 device_id = args.device_id
 
 n_neurons = 500
-examples = 500
-n_epochs = 100
+examples = 1500
+n_epochs = 500
 gpu = False
 num_classes = 10
 cifar10_input= 3 * 32 * 32
@@ -96,17 +97,6 @@ network.add_monitor(voltages["O"], name="O_voltages")
 if gpu:
     network.to("cuda")
 
-# Get MNIST training images and labels.
-# Load MNIST data.
-dataset = CIFAR10(
-    PoissonEncoder(time=time, dt=dt),
-    None,
-    root=os.path.join("..", "..", "data", "CIFAR10"),
-    download=True,
-    transform=transforms.Compose([transforms.ToTensor(),
-                                  transforms.Lambda(lambda x: x * intensity)]),
-)
-
 inpt_axes = None
 inpt_ims = None
 spike_axes = None
@@ -116,17 +106,44 @@ weights_im2 = None
 voltage_ims = None
 voltage_axes = None
 
+# Load CIFAR10 training dataset
+train_dataset = CIFAR10(
+    PoissonEncoder(time=time, dt=dt),
+    None,
+    root=os.path.join("..", "..", "data", "CIFAR10"),
+    download=True,
+    transform=transforms.Compose([transforms.ToTensor(),
+                                  transforms.Lambda(lambda x: x * intensity)]),
+)
+
+# Load CIFAR10 testing dataset
+test_dataset = CIFAR10(
+    PoissonEncoder(time=time, dt=dt),
+    None,
+    root=os.path.join("..", "..", "data", "CIFAR10"),
+    download=True,
+    transform=transforms.Compose([transforms.ToTensor(),
+                                  transforms.Lambda(lambda x: x * intensity)]),
+)
+
 # Create a dataloader to iterate and batch data
-dataloader = torch.utils.data.DataLoader(dataset,
-                                         batch_size=1,
-                                         shuffle=True,
-                                         num_workers=0,
-                                         pin_memory=gpu)
+train_dataloader = torch.utils.data.DataLoader(train_dataset,
+                                               batch_size=1,
+                                               shuffle=True,
+                                               num_workers=0,
+                                               pin_memory=gpu)
+
+# Create a dataloader to iterate and batch data
+test_dataloader = torch.utils.data.DataLoader(test_dataset,
+                                              batch_size=1,
+                                              shuffle=True,
+                                              num_workers=0,
+                                              pin_memory=gpu)
 
 # Run training data on reservoir computer and store (spikes per neuron, label) per example.
 n_iters = examples
 training_pairs = []
-pbar = tqdm(enumerate(dataloader))
+pbar = tqdm(enumerate(train_dataloader))
 for (i, dataPoint) in pbar:
     if i > n_iters:
         break
@@ -179,11 +196,14 @@ class NN(nn.Module):
         # out = torch.sigmoid(self.linear_2(out))
         return out
 
+# Define hyperparameters
+lr = 0.0001
+momentum = 0.9
 
 # Create and train logistic regression model on reservoir outputs.
 model = NN(n_neurons, num_classes) #.to(device_id)
 criterion = torch.nn.MSELoss(reduction="sum")
-optimizer = torch.optim.SGD(model.parameters(), lr=1e-4, momentum=0.9)
+optimizer = torch.optim.SGD(model.parameters(), lr=lr, momentum=momentum)
 
 # Training the Model
 print("\n Training the read out")
@@ -208,7 +228,7 @@ for epoch, _ in pbar:
 
 n_iters = examples
 test_pairs = []
-pbar = tqdm(enumerate(dataloader))
+pbar = tqdm(enumerate(test_dataloader))
 for (i, dataPoint) in pbar:
     if i > n_iters:
         break
@@ -216,7 +236,7 @@ for (i, dataPoint) in pbar:
     label = dataPoint["label"]
     pbar.set_description_str("Testing progress: (%d / %d)" % (i, n_iters))
 
-    network.run(inputs={"I": datum}, time=250, input_time_dim=1)
+    network.run(inputs={"I": datum}, time=time, input_time_dim=1)
     test_pairs.append([spikes["O"].get("s").sum(0), label])
 
 #    if plot:
