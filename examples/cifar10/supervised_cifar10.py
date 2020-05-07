@@ -230,7 +230,7 @@ for (i, datum) in pbar:
     clamp = {"Ae": per_class * label.long() + torch.Tensor(choice).long()}
     inputs = {"X": image.view(time, 1, 32, 32, 3)}
     network.run(inputs=inputs, time=time, clamp=clamp)
-    training_pairs.append([spikes["O"].get("s").sum(0), label])
+    training_pairs.append([spikes["Ae"].get("s").sum(0), label])
 
 
     # Get voltage recording.
@@ -376,7 +376,7 @@ for (i, datum) in pbar:
     # Run the network on the input.
     inputs = {"X": image.view(time, 1, 32, 32, 3)}
     network.run(inputs=inputs, time=time)
-    test_pairs.append([spikes["O"].get("s").sum(0), label])
+    test_pairs.append([spikes["Ae"].get("s").sum(0), label])
 
 
     # Get voltage recording.
