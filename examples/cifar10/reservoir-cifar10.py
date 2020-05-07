@@ -1,3 +1,5 @@
+### Line 136: datum = dataPoint["encoded_image"]...
+
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -14,7 +16,7 @@ from bindsnet.analysis.plotting import (
     plot_voltages,
     plot_weights,
 )
-from bindsnet.datasets import MNIST
+from bindsnet.datasets import CIFAR10
 from bindsnet.encoding import PoissonEncoder
 from bindsnet.network import Network
 from bindsnet.network.nodes import Input
@@ -27,9 +29,6 @@ from bindsnet.utils import get_square_weights
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--seed", type=int, default=0)
-parser.add_argument("--n_neurons", type=int, default=500)
-parser.add_argument("--n_epochs", type=int, default=100)
-parser.add_argument("--examples", type=int, default=500)
 parser.add_argument("--n_workers", type=int, default=-1)
 parser.add_argument("--time", type=int, default=250)
 parser.add_argument("--dt", type=int, default=1.0)
@@ -37,16 +36,13 @@ parser.add_argument("--intensity", type=float, default=64)
 parser.add_argument("--progress_interval", type=int, default=10)
 parser.add_argument("--update_interval", type=int, default=250)
 parser.add_argument("--plot", dest="plot", action="store_true")
-parser.add_argument("--gpu", dest="gpu", action="store_true")
+#parser.add_argument("--gpu", dest="gpu", action="store_true")
 parser.add_argument("--device_id", type=int, default=0)
 parser.set_defaults(plot=True, gpu=True, train=True)
 
 args = parser.parse_args()
 
 seed = args.seed
-n_neurons = args.n_neurons
-n_epochs = args.n_epochs
-examples = args.examples
 n_workers = args.n_workers
 time = args.time
 dt = args.dt
@@ -55,8 +51,15 @@ progress_interval = args.progress_interval
 update_interval = args.update_interval
 train = args.train
 plot = args.plot
-gpu = args.gpu
 device_id = args.device_id
+
+n_neurons = 500
+examples = 500
+n_epochs = 100
+gpu = False
+num_classes = 10
+cifar10_input= 3 * 32 * 32
+cifar10_shape = (3, 32, 32)
 
 np.random.seed(seed)
 torch.cuda.manual_seed_all(seed)
@@ -71,7 +74,7 @@ else:
 
 
 network = Network(dt=dt)
-inpt = Input(784, shape=(1, 28, 28))
+inpt = Input(cifar10_input, shape=cifar10_shape) # Previous values: mnist input = 784 | mnist shape: (1, 28, 28)
 network.add_layer(inpt, name="I")
 output = LIFNodes(n_neurons, thresh=-52 + np.random.randn(n_neurons).astype(float))
 network.add_layer(output, name="O")
@@ -95,14 +98,13 @@ if gpu:
 
 # Get MNIST training images and labels.
 # Load MNIST data.
-dataset = MNIST(
+dataset = CIFAR10(
     PoissonEncoder(time=time, dt=dt),
     None,
-    root=os.path.join("..", "..", "data", "MNIST"),
+    root=os.path.join("..", "..", "data", "CIFAR10"),
     download=True,
-    transform=transforms.Compose(
-        [transforms.ToTensor(), transforms.Lambda(lambda x: x * intensity)]
-    ),
+    transform=transforms.Compose([transforms.ToTensor(),
+                                  transforms.Lambda(lambda x: x * intensity)]),
 )
 
 inpt_axes = None
@@ -115,9 +117,11 @@ voltage_ims = None
 voltage_axes = None
 
 # Create a dataloader to iterate and batch data
-dataloader = torch.utils.data.DataLoader(
-    dataset, batch_size=1, shuffle=True, num_workers=0, pin_memory=gpu
-)
+dataloader = torch.utils.data.DataLoader(dataset,
+                                         batch_size=1,
+                                         shuffle=True,
+                                         num_workers=0,
+                                         pin_memory=gpu)
 
 # Run training data on reservoir computer and store (spikes per neuron, label) per example.
 n_iters = examples
@@ -126,38 +130,38 @@ pbar = tqdm(enumerate(dataloader))
 for (i, dataPoint) in pbar:
     if i > n_iters:
         break
-    datum = dataPoint["encoded_image"].view(time, 1, 1, 28, 28).to(device_id)
+    datum = dataPoint["encoded_image"].view(time, 1, 3, 32, 32) # Previously: .view(time, 1, 1, 28, 28) | .to(device_id)
     label = dataPoint["label"]
     pbar.set_description_str("Train progress: (%d / %d)" % (i, n_iters))
 
     network.run(inputs={"I": datum}, time=time, input_time_dim=1)
     training_pairs.append([spikes["O"].get("s").sum(0), label])
 
-    if plot:
-
-        inpt_axes, inpt_ims = plot_input(
-            dataPoint["image"].view(28, 28),
-            datum.view(time, 784).sum(0).view(28, 28),
-            label=label,
-            axes=inpt_axes,
-            ims=inpt_ims,
-        )
-        spike_ims, spike_axes = plot_spikes(
-            {layer: spikes[layer].get("s").view(-1, time) for layer in spikes},
-            axes=spike_axes,
-            ims=spike_ims,
-        )
-        voltage_ims, voltage_axes = plot_voltages(
-            {layer: voltages[layer].get("v").view(-1, time) for layer in voltages},
-            ims=voltage_ims,
-            axes=voltage_axes,
-        )
-        weights_im = plot_weights(
-            get_square_weights(C1.w, 23, 28), im=weights_im, wmin=-2, wmax=2
-        )
-        weights_im2 = plot_weights(C2.w, im=weights_im2, wmin=-2, wmax=2)
-
-        plt.pause(1e-8)
+#    if plot:
+#
+#        inpt_axes, inpt_ims = plot_input(
+#            dataPoint["image"].view(32, 32 * 3),
+#            datum.view(time, cifar10_input).sum(0).view(32, 32 * 3),
+#            label=label,
+#            axes=inpt_axes,
+#            ims=inpt_ims,
+#        )
+#        spike_ims, spike_axes = plot_spikes(
+#            {layer: spikes[layer].get("s").view(-1, time) for layer in spikes},
+#            axes=spike_axes,
+#            ims=spike_ims,
+#        )
+#        voltage_ims, voltage_axes = plot_voltages(
+#            {layer: voltages[layer].get("v").view(-1, time) for layer in voltages},
+#            ims=voltage_ims,
+#            axes=voltage_axes,
+#        )
+#        weights_im = plot_weights(
+#            get_square_weights(C1.w, 23, 32), im=weights_im, wmin=-2, wmax=2
+#        )
+#        weights_im2 = plot_weights(C2.w, im=weights_im2, wmin=-2, wmax=2)
+#
+#        plt.pause(1e-8)
     network.reset_state_variables()
 
 
@@ -177,7 +181,7 @@ class NN(nn.Module):
 
 
 # Create and train logistic regression model on reservoir outputs.
-model = NN(n_neurons, 10).to(device_id)
+model = NN(n_neurons, num_classes) #.to(device_id)
 criterion = torch.nn.MSELoss(reduction="sum")
 optimizer = torch.optim.SGD(model.parameters(), lr=1e-4, momentum=0.9)
 
@@ -190,7 +194,7 @@ for epoch, _ in pbar:
         # Forward + Backward + Optimize
         optimizer.zero_grad()
         outputs = model(s)
-        label = torch.zeros(1, 1, 10).float().to(device_id)
+        label = torch.zeros(1, 1, 10).float() #.to(device_id)
         label[0, 0, l] = 1.0
         loss = criterion(outputs.view(1, 1, -1), label)
         avg_loss += loss.data
@@ -208,37 +212,37 @@ pbar = tqdm(enumerate(dataloader))
 for (i, dataPoint) in pbar:
     if i > n_iters:
         break
-    datum = dataPoint["encoded_image"].view(time, 1, 1, 28, 28).to(device_id)
+    datum = dataPoint["encoded_image"].view(time, 1, 3, 32, 32) #.to(device_id)
     label = dataPoint["label"]
     pbar.set_description_str("Testing progress: (%d / %d)" % (i, n_iters))
 
     network.run(inputs={"I": datum}, time=250, input_time_dim=1)
     test_pairs.append([spikes["O"].get("s").sum(0), label])
 
-    if plot:
-        inpt_axes, inpt_ims = plot_input(
-            dataPoint["image"].view(28, 28),
-            datum.view(time, 784).sum(0).view(28, 28),
-            label=label,
-            axes=inpt_axes,
-            ims=inpt_ims,
-        )
-        spike_ims, spike_axes = plot_spikes(
-            {layer: spikes[layer].get("s").view(-1, 250) for layer in spikes},
-            axes=spike_axes,
-            ims=spike_ims,
-        )
-        voltage_ims, voltage_axes = plot_voltages(
-            {layer: voltages[layer].get("v").view(-1, 250) for layer in voltages},
-            ims=voltage_ims,
-            axes=voltage_axes,
-        )
-        weights_im = plot_weights(
-            get_square_weights(C1.w, 23, 28), im=weights_im, wmin=-2, wmax=2
-        )
-        weights_im2 = plot_weights(C2.w, im=weights_im2, wmin=-2, wmax=2)
-
-        plt.pause(1e-8)
+#    if plot:
+#        inpt_axes, inpt_ims = plot_input(
+#            dataPoint["image"].view(32, 32 * 3),
+#            datum.view(time, cifar10_input).sum(0).view(32, 32 * 3),
+#            label=label,
+#            axes=inpt_axes,
+#            ims=inpt_ims,
+#        )
+#        spike_ims, spike_axes = plot_spikes(
+#            {layer: spikes[layer].get("s").view(-1, 250) for layer in spikes},
+#            axes=spike_axes,
+#            ims=spike_ims,
+#        )
+#        voltage_ims, voltage_axes = plot_voltages(
+#            {layer: voltages[layer].get("v").view(-1, 250) for layer in voltages},
+#            ims=voltage_ims,
+#            axes=voltage_axes,
+#        )
+#        weights_im = plot_weights(
+#            get_square_weights(C1.w, 23, 28), im=weights_im, wmin=-2, wmax=2
+#        )
+#        weights_im2 = plot_weights(C2.w, im=weights_im2, wmin=-2, wmax=2)
+#
+#        plt.pause(1e-8)
     network.reset_state_variables()
 
 # Test the Model
@@ -247,7 +251,7 @@ for s, label in test_pairs:
     outputs = model(s)
     _, predicted = torch.max(outputs.data.unsqueeze(0), 1)
     total += 1
-    correct += int(predicted == label.long().to(device_id))
+    correct += int(predicted == label.long()) #.to(device_id))
 
 print(
     "\n Accuracy of the model on %d test images: %.2f %%"
