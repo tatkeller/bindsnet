@@ -1,5 +1,5 @@
 ### Line 136: datum = dataPoint["encoded_image"]...
-### Last attempt: Changed n_neurons to 3072 (vs. 500) -- Result: Poor - Loss didn't move
+### Last attempt: Changed n_neurons to 500 (vs. 3072) -- Result: Strong - Test accuracy of 31.5%
 
 import numpy as np
 import pandas as pd
