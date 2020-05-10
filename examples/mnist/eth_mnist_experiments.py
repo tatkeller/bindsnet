@@ -91,54 +91,27 @@ if gpu and torch.cuda.is_available():
 
 # Build network.
 network = DiehlAndCook2015(
-    # n_inpt=784,
-    n_inpt=3072,
+    n_inpt=784,
+#    n_inpt=3072,
     n_neurons=n_neurons,
     exc=exc,
     inh=inh,
     dt=dt,
     norm=78.4,
     theta_plus=theta_plus,
-    # inpt_shape=(1, 28, 28),
-    inpt_shape=(3, 32, 32),
+    inpt_shape=(1, 28, 28)
+#    inpt_shape=(3, 32, 32),
 )
 
 # Directs network to GPU
 if gpu:
     network.to("cuda")
 
-# # Load MNIST data.
-# dataset = MNIST(
-#     PoissonEncoder(time=time, dt=dt),
-#     None,
-#     root=os.path.join("..", "..", "data", "MNIST"),
-#     train=True,
-#     download=True,
-#     transform=transforms.Compose(
-#         [transforms.ToTensor(), transforms.Lambda(lambda x: x * intensity)]
-#     ),
-# )
-
-# print(dataset)
-
-# dataset_test = MNIST(
-#     PoissonEncoder(time=time, dt=dt),
-#     None,
-#     root=os.path.join("..", "..", "data", "MNIST_TEST"),
-#     train=False,
-#     download=True,
-#     transform=transforms.Compose(
-#         [transforms.ToTensor(), transforms.Lambda(lambda x: x * intensity)]
-#     ),
-# )
-# print(dataset_test)
-
-
 # Load MNIST data.
-dataset = CIFAR10(
+dataset = MNIST(
     PoissonEncoder(time=time, dt=dt),
     None,
-    root=os.path.join("..", "..", "data", "CIFAR10"),
+    root=os.path.join("..", "..", "data", "MNIST"),
     train=True,
     download=True,
     transform=transforms.Compose(
@@ -146,18 +119,43 @@ dataset = CIFAR10(
     ),
 )
 
-dataset_test = CIFAR10(
+#print(dataset)
+
+dataset_test = MNIST(
     PoissonEncoder(time=time, dt=dt),
     None,
-    root=os.path.join("..", "..", "data", "CIFAR10_TEST"),
+    root=os.path.join("..", "..", "data", "MNIST_TEST"),
     train=False,
     download=True,
     transform=transforms.Compose(
         [transforms.ToTensor(), transforms.Lambda(lambda x: x * intensity)]
     ),
 )
+#print(dataset_test)
 
 
+## Load MNIST data.
+#dataset = CIFAR10(
+#    PoissonEncoder(time=time, dt=dt),
+#    None,
+#    root=os.path.join("..", "..", "data", "CIFAR10"),
+#    train=True,
+#    download=True,
+#    transform=transforms.Compose(
+#        [transforms.ToTensor(), transforms.Lambda(lambda x: x * intensity)]
+#    ),
+#)
+#
+#dataset_test = CIFAR10(
+#    PoissonEncoder(time=time, dt=dt),
+#    None,
+#    root=os.path.join("..", "..", "data", "CIFAR10_TEST"),
+#    train=False,
+#    download=True,
+#    transform=transforms.Compose(
+#        [transforms.ToTensor(), transforms.Lambda(lambda x: x * intensity)]
+#    ),
+#)
 
 # Record spikes during the simulation.
 spike_record = torch.zeros(update_interval, time, n_neurons)
@@ -220,8 +218,8 @@ for epoch in range(n_epochs):
         # Get next input sample.
         # print(batch['encoded_image'].shape)
 
-        # inputs = {"X": batch["encoded_image"].view(time, 1, 1, 28, 28)}
-        inputs = {"X": batch["encoded_image"].view(time, 1, 3, 32, 32)}
+        inputs = {"X": batch["encoded_image"].view(time, 1, 1, 28, 28)}
+#        inputs = {"X": batch["encoded_image"].view(time, 1, 3, 32, 32)}
         if gpu:
             inputs = {k: v.cuda() for k, v in inputs.items()}
 
@@ -381,8 +379,8 @@ pbar = tqdm(enumerate(dataloader_test))
 for (i, dataPoint) in pbar:
     if i >= n_iters:
         break
-    # datum = dataPoint["encoded_image"].view(time, 1, 1, 28, 28).to(device_id)
-    datum = dataPoint["encoded_image"].view(time, 1, 3, 32, 32).to(device_id)
+    datum = dataPoint["encoded_image"].view(time, 1, 1, 28, 28).to(device_id)
+#    datum = dataPoint["encoded_image"].view(time, 1, 3, 32, 32).to(device_id)
     label = dataPoint["label"]
     pbar.set_description_str("Testing progress: (%d / %d)" % (i, n_iters))
 
@@ -392,8 +390,6 @@ for (i, dataPoint) in pbar:
 
     
     network.reset_state_variables()
-
-
 
 ####################
 # Test Accuracy
