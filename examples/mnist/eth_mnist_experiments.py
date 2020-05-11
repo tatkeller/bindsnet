@@ -31,8 +31,8 @@ parser.add_argument("--seed", type=int, default=0)
 parser.add_argument("--n_neurons", type=int, default=100)
 parser.add_argument("--n_epochs", type=int, default=1)
 parser.add_argument("--logistic_epochs", type=int, default=100)
-parser.add_argument("--n_test", type=int, default=20)
-parser.add_argument("--n_train", type=int, default=20)
+parser.add_argument("--n_test", type=int, default=10000)
+parser.add_argument("--n_train", type=int, default=100)
 parser.add_argument("--n_workers", type=int, default=-1)
 parser.add_argument("--exc", type=float, default=22.5)
 parser.add_argument("--inh", type=float, default=120)
@@ -134,7 +134,7 @@ dataset_test = MNIST(
 #print(dataset_test)
 
 
-## Load MNIST data.
+## Load CIFAR-10 data.
 #dataset = CIFAR10(
 #    PoissonEncoder(time=time, dt=dt),
 #    None,

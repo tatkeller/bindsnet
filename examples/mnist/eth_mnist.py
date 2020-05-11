@@ -259,3 +259,54 @@ for epoch in range(n_epochs):
 
 print("Progress: %d / %d (%.4f seconds)" % (epoch + 1, n_epochs, t() - start))
 print("Training complete.\n")
+
+###########################
+# Generating Testing Pairs
+###########################
+
+dataset_test = MNIST(
+    PoissonEncoder(time=time, dt=dt),
+    None,
+    root=os.path.join("..", "..", "data", "MNIST_TEST"),
+    train=False,
+    download=True,
+    transform=transforms.Compose(
+        [transforms.ToTensor(), transforms.Lambda(lambda x: x * intensity)]
+    ),
+)
+
+dataloader_test = torch.utils.data.DataLoader(
+        dataset_test, batch_size=1, num_workers=n_workers, pin_memory=gpu)
+n_iters = n_test
+test_pairs = []
+pbar = tqdm(enumerate(dataloader_test))
+for (i, dataPoint) in pbar:
+    if i >= n_iters:
+        break
+    datum = dataPoint["encoded_image"].view(time, 1, 1, 28, 28).to(device_id)
+#    datum = dataPoint["encoded_image"].view(time, 1, 3, 32, 32).to(device_id)
+    label = dataPoint["label"]
+    pbar.set_description_str("Testing progress: (%d / %d)" % (i, n_iters))
+
+    inputs = {"X": datum}
+    network.run(inputs=inputs, time=time, input_time_dim=1)
+    test_pairs.append([spikes["Ae"].get("s").sum(0), label])
+
+    
+    network.reset_state_variables()
+
+####################
+# Test Accuracy
+####################
+
+correct, total = 0, 0
+for s, label in test_pairs:
+    outputs = model(s)
+    _, predicted = torch.max(outputs.data.unsqueeze(0), 1)
+    total += 1
+    correct += int(predicted == label.long().to(device_id))
+
+print(
+    "\n Accuracy of the model on %d test images: %.2f %%"
+    % (n_iters, 100 * correct / total)
+)
