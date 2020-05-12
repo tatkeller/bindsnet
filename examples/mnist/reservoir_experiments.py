@@ -28,9 +28,9 @@ from bindsnet.utils import get_square_weights
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--seed", type=int, default=0)
-parser.add_argument("--n_neurons", type=int, default=500)
-parser.add_argument("--n_epochs", type=int, default=100)
-parser.add_argument("--examples", type=int, default=500)
+parser.add_argument("--n_neurons", type=int, default=100)
+parser.add_argument("--n_epochs", type=int, default=300)
+parser.add_argument("--examples", type=int, default=5000)
 parser.add_argument("--n_workers", type=int, default=-1)
 parser.add_argument("--time", type=int, default=250)
 parser.add_argument("--dt", type=int, default=1.0)
@@ -135,7 +135,10 @@ for (i, dataPoint) in pbar:
     label = dataPoint["label"]
     pbar.set_description_str("Train progress: (%d / %d)" % (i, n_iters))
 
+    # Simulate the network
     network.run(inputs={"I": datum}, time=time, input_time_dim=1)
+    
+    # Generate training pairs
     training_pairs.append([spikes["O"].get("s").sum(0), label])
 
     if plot:
