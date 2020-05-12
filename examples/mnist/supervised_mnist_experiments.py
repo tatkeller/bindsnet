@@ -24,15 +24,16 @@ from bindsnet.analysis.plotting import (
 )
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--seed", type=int, default=0)
-parser.add_argument("--n_neurons", type=int, default=784)
+parser.add_argument("--n_neurons", type=int, default=100)
 parser.add_argument("--n_train", type=int, default=5000)
 parser.add_argument("--n_test", type=int, default=5000)
+parser.add_argument("--time", type=int, default=500)
+parser.add_argument("--dt", type=int, default=1.0)
+
+parser.add_argument("--seed", type=int, default=0)
 parser.add_argument("--n_clamp", type=int, default=1)
 parser.add_argument("--exc", type=float, default=22.5)
 parser.add_argument("--inh", type=float, default=22.5)
-parser.add_argument("--time", type=int, default=500)
-parser.add_argument("--dt", type=int, default=1.0)
 parser.add_argument("--intensity", type=float, default=128)
 parser.add_argument("--progress_interval", type=int, default=10)
 parser.add_argument("--update_interval", type=int, default=500)
@@ -197,9 +198,10 @@ for (i, datum) in pbar:
     #Add the current label to the list of labels for this update_interval
     labels[i % update_interval] = label[0]
 
-    # Run the network on the input.
     choice = np.random.choice(int(n_neurons / 10), size=n_clamp, replace=False)
     clamp = {"Ae": per_class * label.long() + torch.Tensor(choice).long()}
+
+    # Simulate network on generated spike trains
     inputs = {"X": image.view(time, 1, 1, 28, 28)}
     network.run(inputs=inputs, time=time, clamp=clamp)
 
@@ -210,32 +212,32 @@ for (i, datum) in pbar:
     # Add to spikes recording.
     spike_record[i % update_interval] = spikes["Ae"].get("s").view(time, n_neurons)
 
-    # Optionally plot various simulation information.
-    if plot:
-        inpt = inputs["X"].view(time, 784).sum(0).view(28, 28)
-        input_exc_weights = network.connections[("X", "Ae")].w
-        square_weights = get_square_weights(
-            input_exc_weights.view(784, n_neurons), n_sqrt, 28
-        )
-        square_assignments = get_square_assignments(assignments, n_sqrt)
-        voltages = {"Ae": exc_voltages, "Ai": inh_voltages}
-
-        inpt_axes, inpt_ims = plot_input(
-            image.sum(1).view(28, 28), inpt, label=label, axes=inpt_axes, ims=inpt_ims
-        )
-        spike_ims, spike_axes = plot_spikes(
-            {layer: spikes[layer].get("s").view(time, 1, -1) for layer in spikes},
-            ims=spike_ims,
-            axes=spike_axes,
-        )
-        weights_im = plot_weights(square_weights, im=weights_im)
-        assigns_im = plot_assignments(square_assignments, im=assigns_im)
-        perf_ax = plot_performance(accuracy, ax=perf_ax)
-        voltage_ims, voltage_axes = plot_voltages(
-            voltages, ims=voltage_ims, axes=voltage_axes
-        )
-
-        plt.pause(1e-8)
+#    # Optionally plot various simulation information.
+#    if plot:
+#        inpt = inputs["X"].view(time, 784).sum(0).view(28, 28)
+#        input_exc_weights = network.connections[("X", "Ae")].w
+#        square_weights = get_square_weights(
+#            input_exc_weights.view(784, n_neurons), n_sqrt, 28
+#        )
+#        square_assignments = get_square_assignments(assignments, n_sqrt)
+#        voltages = {"Ae": exc_voltages, "Ai": inh_voltages}
+#
+#        inpt_axes, inpt_ims = plot_input(
+#            image.sum(1).view(28, 28), inpt, label=label, axes=inpt_axes, ims=inpt_ims
+#        )
+#        spike_ims, spike_axes = plot_spikes(
+#            {layer: spikes[layer].get("s").view(time, 1, -1) for layer in spikes},
+#            ims=spike_ims,
+#            axes=spike_axes,
+#        )
+#        weights_im = plot_weights(square_weights, im=weights_im)
+#        assigns_im = plot_assignments(square_assignments, im=assigns_im)
+#        perf_ax = plot_performance(accuracy, ax=perf_ax)
+#        voltage_ims, voltage_axes = plot_voltages(
+#            voltages, ims=voltage_ims, axes=voltage_axes
+#        )
+#
+#        plt.pause(1e-8)
 
     network.reset_state_variables()  # Reset state variables.
 
