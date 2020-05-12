@@ -24,7 +24,7 @@ from bindsnet.analysis.plotting import (
 )
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--n_neurons", type=int, default=100)
+parser.add_argument("--n_neurons", type=int, default=150)
 parser.add_argument("--n_train", type=int, default=5000)
 parser.add_argument("--n_test", type=int, default=5000)
 parser.add_argument("--time", type=int, default=500)
